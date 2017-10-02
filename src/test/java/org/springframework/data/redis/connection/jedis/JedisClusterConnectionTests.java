@@ -22,7 +22,6 @@ import static org.springframework.data.redis.connection.RedisGeoCommands.Distanc
 import static org.springframework.data.redis.connection.RedisGeoCommands.GeoRadiusCommandArgs.*;
 import static org.springframework.data.redis.core.ScanOptions.*;
 
-import org.springframework.data.redis.connection.RedisClusterNode.SlotRange;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.JedisCluster;
 import redis.clients.jedis.JedisPool;
@@ -57,6 +56,7 @@ import org.springframework.data.redis.connection.DataType;
 import org.springframework.data.redis.connection.DefaultSortParameters;
 import org.springframework.data.redis.connection.DefaultTuple;
 import org.springframework.data.redis.connection.RedisClusterNode;
+import org.springframework.data.redis.connection.RedisClusterNode.SlotRange;
 import org.springframework.data.redis.connection.RedisGeoCommands.GeoLocation;
 import org.springframework.data.redis.connection.RedisListCommands.Position;
 import org.springframework.data.redis.connection.RedisNode;
@@ -1729,7 +1729,8 @@ public class JedisClusterConnectionTests implements ClusterConnectionTests {
 	public void infoShouldCollectionInfoFromAllClusterNodes() {
 
 		Properties singleNodeInfo = clusterConnection.serverCommands().info(new RedisClusterNode("127.0.0.1", 7380));
-		assertThat(Double.valueOf(clusterConnection.serverCommands().info().size()), closeTo(singleNodeInfo.size() * 3, 12d));
+		assertThat(Double.valueOf(clusterConnection.serverCommands().info().size()),
+				closeTo(singleNodeInfo.size() * 3, 12d));
 	}
 
 	@Test // DATAREDIS-315
@@ -2134,5 +2135,31 @@ public class JedisClusterConnectionTests implements ClusterConnectionTests {
 		nativeConnection.geoadd(KEY_1_BYTES, CATANIA.getPoint().getX(), CATANIA.getPoint().getY(), CATANIA.getName());
 
 		assertThat(clusterConnection.geoRemove(KEY_1_BYTES, ARIGENTO.getName()), is(1L));
+	}
+
+	@Test // DATAREDIS-529
+	public void testExistsWithMultipleKeys() {
+
+		nativeConnection.set(KEY_1, "true");
+		nativeConnection.set(KEY_2, "true");
+		nativeConnection.set(KEY_3, "true");
+
+		assertThat(clusterConnection.keyCommands()
+				.exists(Arrays.asList(KEY_1_BYTES, KEY_2_BYTES, KEY_3_BYTES, "nonexistent".getBytes())), is(3L));
+	}
+
+	@Test // DATAREDIS-529
+	public void testExistsWithMultipleKeysNoneExists() {
+
+		assertThat(clusterConnection.keyCommands().exists(Arrays.asList("no-exist-1".getBytes(), "no-exist-2".getBytes())),
+				is(0L));
+	}
+
+	@Test // DATAREDIS-529
+	public void testExistsSameKeyMultipleTimes() {
+
+		nativeConnection.set(KEY_1, "true");
+
+		assertThat(clusterConnection.keyCommands().exists(Arrays.asList(KEY_1_BYTES, KEY_1_BYTES)), is(2L));
 	}
 }
