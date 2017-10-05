@@ -163,10 +163,44 @@ public class JedisClusterConnection implements DefaultedRedisClusterConnection {
 				.execute(command, Collections.emptyList(), commandArgs, () -> client), keyMaster).getValue();
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see org.springframework.data.redis.connection.RedisConnection#geoCommands()
+	/**
+	 * Execute the given command for the {@code key} provided potentially appending args. <br />
+	 * This method, other than {@link #execute(String, byte[]...)}, dispatches the command to the {@code key} serving
+	 * master node.
+	 *
+	 * <pre>
+	 * <code>
+	 * // SET foo bar EX 10 NX
+	 * execute("SET", "foo".getBytes(), asBinaryList("bar", "EX", 10, "NX")
+	 * </code>
+	 * </pre>
+	 *
+	 * @param command must not be {@literal null}.
+	 * @param keys must not be {@literal null}.
+	 * @param args must not be {@literal null}.
+	 * @return command result as delivered by the underlying Redis driver. Can be {@literal null}.
+	 * @since 2.1
 	 */
+	@Nullable
+	public <T> List<T> execute(String command, Collection<byte[]> keys, Collection<byte[]> args) {
+
+		Assert.notNull(command, "Command must not be null!");
+		Assert.notNull(keys, "Key must not be null!");
+		Assert.notNull(args, "Args must not be null!");
+
+		return clusterCommandExecutor.executeMultiKeyCommand((JedisMultiKeyClusterCommandCallback<T>) (client, key) -> {
+
+			Collection<byte[]> commandArgs = new ArrayList<>();
+			commandArgs.add(key);
+			commandArgs.addAll(args);
+			return JedisClientUtils.execute(command, Collections.emptyList(), commandArgs, () -> client);
+		}, keys).resultsAsList();
+	}
+
+	/*
+		 * (non-Javadoc)
+		 * @see org.springframework.data.redis.connection.RedisConnection#geoCommands()
+		 */
 	@Override
 	public RedisGeoCommands geoCommands() {
 		return new JedisClusterGeoCommands(this);

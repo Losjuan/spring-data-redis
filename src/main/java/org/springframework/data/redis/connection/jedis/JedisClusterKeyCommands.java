@@ -18,6 +18,7 @@ package org.springframework.data.redis.connection.jedis;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -37,6 +38,7 @@ import org.springframework.data.redis.connection.jedis.JedisClusterConnection.Je
 import org.springframework.data.redis.connection.jedis.JedisClusterConnection.JedisMultiKeyClusterCommandCallback;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.ScanOptions;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
@@ -90,6 +92,20 @@ class JedisClusterKeyCommands implements RedisKeyCommands {
 		} catch (Exception ex) {
 			throw convertJedisAccessException(ex);
 		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.springframework.data.redis.connection.RedisKeyCommands#touch(byte[][])
+	 */
+	@Nullable
+	@Override
+	public Long touch(byte[]... keys) {
+
+		Assert.notNull(keys, "Keys must not be null!");
+
+		return connection.<Long> execute("TOUCH", Arrays.asList(keys), Collections.emptyList()).stream()
+				.mapToLong(val -> val).sum();
 	}
 
 	/*

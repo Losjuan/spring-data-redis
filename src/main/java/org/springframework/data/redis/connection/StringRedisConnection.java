@@ -112,6 +112,16 @@ public interface StringRedisConnection extends RedisConnection {
 	DataType type(String key);
 
 	/**
+	 * Alter the last access time of given {@code key(s)}.
+	 *
+	 * @param keys must not be {@literal null}.
+	 * @return {@literal null} when used in pipeline / transaction.
+	 * @see <a href="http://redis.io/commands/touch">Redis Documentation: TOUCH</a>
+	 */
+	@Nullable
+	Long touch(String... keys);
+
+	/**
 	 * Find all keys matching the given {@code pattern}.
 	 *
 	 * @param pattern must not be {@literal null}.
